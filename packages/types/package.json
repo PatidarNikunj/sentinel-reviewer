@@ -1,0 +1,16 @@
+{
+  "name": "@sentinel/types",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.18.18",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "sentinel-reviewer-workspace",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": [
+      {
+        "name": "node",
+        "version": ">=20.0.0"
+      },
+      {
+        "name": "pnpm",
+        "version": ">=12.6.0",
+        "onFail": "download"
+      }
+    ]
+  },
+  "packageManager": "pnpm@12.6.0",
+  "type": "module",
+  "private": true
+}

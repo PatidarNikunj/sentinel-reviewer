@@ -1,0 +1,31 @@
+{
+  "name": "@sentinel/database",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/db.ts",
+    "./contract": "./src/contract.ts"
+  },
+  "scripts": {
+    "db:generate": "prisma contract emit",
+    "db:init": "prisma db init",
+    "db:update": "prisma db update",
+    "db:verify": "prisma db verify",
+    "db:migrate": "prisma db migrate",
+    "db:migration:plan": "prisma migration plan",
+    "db:migration:status": "prisma migration status",
+    "postinstall": "prisma contract emit || exit 0"
+  },
+  "dependencies": {
+    "@prisma/orm-postgres": "8.0.0-rc.11",
+    "dotenv": "^18.0.4",
+    "temporal-polyfill": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "prisma": "8.0.0-rc.15",
+    "typescript": "^5.9.3"
+  }
+}

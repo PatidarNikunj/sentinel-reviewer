@@ -1,0 +1,12 @@
+Name: Nikunj
+DOB: 18 Nov 1990 Time: 18:30
+Place: Sabalpur, Mehsana, Gujarat
+Lat: 23.775327
+Long: 72.667546
+
+
+Name: Riddhi
+DOB: 30 Nov 1994 Time: 7:00
+Place: Rangpur, Mehsana, Gujarat
+Lat: 23.7996
+Long: 72.5642
