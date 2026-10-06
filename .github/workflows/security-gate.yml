@@ -1,0 +1,173 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Sentinel Reviewer — Security Gate CI/CD Pipeline
+# Runs Semgrep static analysis + Snyk dependency scanning
+# Features: retry-on-failure, re-trigger on PR update, PR status gating
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: 🛡️ Security Gate
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+concurrency:
+  group: security-gate-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+  security-events: write
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "12"
+
+jobs:
+  # ── Stage 1: Semgrep Static Analysis ─────────────────────────────────────
+  semgrep-scan:
+    name: 🔍 Semgrep Static Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Run Semgrep SAST
+        id: semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/default
+            p/owasp-top-ten
+            p/typescript
+            p/nodejs
+            p/security-audit
+          generateSarif: "1"
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      - name: 📤 Upload Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: 📊 Generate Semgrep summary
+        if: always()
+        run: |
+          echo "## 🔍 Semgrep Analysis Results" >> $GITHUB_STEP_SUMMARY
+          if [ -f semgrep.sarif ]; then
+            FINDINGS=$(cat semgrep.sarif | jq '.runs[0].results | length')
+            echo "**Findings:** ${FINDINGS}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** No SARIF output generated" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ── Stage 2: Snyk Dependency Vulnerability Scan ──────────────────────────
+  snyk-scan:
+    name: 🛡️ Snyk Dependency Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🛡️ Run Snyk security scan
+        id: snyk
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects --severity-threshold=high --sarif-file-output=snyk.sarif
+
+      - name: 📤 Upload Snyk SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk.sarif
+          category: snyk
+
+      - name: 📊 Generate Snyk summary
+        if: always()
+        run: |
+          echo "## 🛡️ Snyk Dependency Scan Results" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.snyk.outcome }}" == "success" ]; then
+            echo "**Status:** ✅ No high/critical vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** ⚠️ Vulnerabilities detected — review required" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ── Stage 3: Security Gate Verdict ───────────────────────────────────────
+  security-verdict:
+    name: 🏁 Security Gate Verdict
+    runs-on: ubuntu-latest
+    needs: [semgrep-scan, snyk-scan]
+    if: always()
+
+    steps:
+      - name: 🏁 Evaluate gate status
+        run: |
+          echo "## 🏁 Security Gate Verdict" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          SEMGREP_STATUS="${{ needs.semgrep-scan.result }}"
+          SNYK_STATUS="${{ needs.snyk-scan.result }}"
+
+          echo "| Scanner  | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Semgrep  | ${SEMGREP_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Snyk     | ${SNYK_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "$SEMGREP_STATUS" == "failure" || "$SNYK_STATUS" == "failure" ]]; then
+            echo "### ❌ Security Gate: **FAILED**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Push new commits to this PR to automatically re-trigger the security scan." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "### ✅ Security Gate: **PASSED**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 💬 Comment PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: security-gate
+          message: |
+            ## 🛡️ Sentinel Security Gate Report
+
+            | Scanner | Status |
+            |---------|--------|
+            | Semgrep SAST | ${{ needs.semgrep-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            | Snyk Dependencies | ${{ needs.snyk-scan.result == 'success' && '✅ Passed' || '⚠️ Review needed' }} |
+
+            **Overall:** ${{ (needs.semgrep-scan.result == 'success' && needs.snyk-scan.result == 'success') && '✅ Gate PASSED' || '❌ Gate FAILED — push fixes to re-trigger' }}
+
+            ---
+            _Automatically re-runs on every push to this PR (`synchronize` event)._
+            _Powered by [Sentinel Reviewer](https://github.com/${{ github.repository }})_

@@ -1,0 +1,25 @@
+{
+  "name": "@sentinel/secure-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/worker.ts",
+    "build": "tsc",
+    "start": "node dist/worker.js",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@sentinel/types": "workspace:*",
+    "@sentinel/validation": "workspace:*",
+    "dotenv": "^16.5.0",
+    "uuid": "^11.1.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
+  }
+}
