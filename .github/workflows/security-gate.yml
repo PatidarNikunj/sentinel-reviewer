@@ -42,21 +42,15 @@ jobs:
 
       - name: 🔍 Run Semgrep SAST
         id: semgrep
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: >-
-            p/default
-            p/owasp-top-ten
-            p/typescript
-            p/nodejs
-            p/security-audit
-          args: --sarif --sarif-output=semgrep.sarif
+        run: |
+          pip install semgrep
+          semgrep scan --config="p/default" --config="p/owasp-top-ten" --config="p/typescript" --config="p/nodejs" --config="p/security-audit" --sarif --output=semgrep.sarif
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
 
       - name: 📤 Upload Semgrep SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
           category: semgrep
@@ -105,7 +99,7 @@ jobs:
 
       - name: 📤 Upload Snyk SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: snyk.sarif
           category: snyk
