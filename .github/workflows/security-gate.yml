@@ -66,15 +66,15 @@ jobs:
             NOTES=$(cat semgrep.sarif | jq '[.runs[0].results[] | select(.level == "note")] | length')
 
             echo "### 📊 Vulnerability Matrix" >> $GITHUB_STEP_SUMMARY
-            echo "| Severity | Count | Status |" >> $GITHUB_STEP_SUMMARY
-            echo "|----------|-------|--------|" >> $GITHUB_STEP_SUMMARY
-            echo "| 🔴 Errors (High Risk) | ${ERRORS} | $( [ "$ERRORS" -gt 0 ] && echo "❌ Action Needed" || echo "✅ Clean" ) |" >> $GITHUB_STEP_SUMMARY
-            echo "| 🟡 Warnings (Medium Risk) | ${WARNINGS} | $( [ "$WARNINGS" -gt 0 ] && echo "⚠️ Review" || echo "✅ Clean" ) |" >> $GITHUB_STEP_SUMMARY
-            echo "| 🔵 Notes (Low Risk) | ${NOTES} | ✅ Documented |" >> $GITHUB_STEP_SUMMARY
+            echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| 🔴 Errors (High) | ${ERRORS} |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🟡 Warnings (Medium) | ${WARNINGS} |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🔵 Notes (Low) | ${NOTES} |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Total Static Analysis Findings:** ${TOTAL_FINDINGS}" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Status:** No SARIF output generated. Check runtime logs." >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Status:** No SARIF output generated." >> $GITHUB_STEP_SUMMARY
           fi
   # ── Stage 2: Snyk Dependency Vulnerability Scan ──────────────────────────
   snyk-scan:
@@ -105,24 +105,27 @@ jobs:
         env:
           SNYK_TOKEN: \${{ secrets.SNYK_TOKEN }}
         with:
-          # Changed to json-file-output for programmatic parsing
           args: --all-projects --severity-threshold=high --json-file-output=snyk.json
 
       - name: 📊 Generate Snyk summary
         if: always()
         run: |
           echo "## 🛡️ Snyk Dependency Scan Results" >> \$GITHUB_STEP_SUMMARY
+          
           if [ -f snyk.json ]; then
-            # Snyk output format can be a single object or an array of objects for multi-project scans
-            # This handles both structures cleanly via jq
+            # Parse counts cleanly using native jq evaluation strings
             CRITICAL_COUNT=\$(cat snyk.json | jq '[if type=="array" then .[] else . end | .vulnerabilities[]? | select(.severity == "critical")] | length')
             HIGH_COUNT=\$(cat snyk.json | jq '[if type=="array" then .[] else . end | .vulnerabilities[]? | select(.severity == "high")] | length')
             
+            # Map structural status actions out cleanly before echoing strings
+            if [ "\$CRITICAL_COUNT" -gt 0 ]; then CRITICAL_ACT="❌ Immediate Fix Required"; else CRITICAL_ACT="✅ Clean"; fi
+            if [ "\$HIGH_COUNT" -gt 0 ]; then HIGH_ACT="❌ Fix Required"; else HIGH_ACT="✅ Clean"; fi
+
             echo "### 📦 Dependency Risk Summary" >> \$GITHUB_STEP_SUMMARY
             echo "| Severity Level | Count | Action |" >> \$GITHUB_STEP_SUMMARY
             echo "|----------------|-------|--------|" >> \$GITHUB_STEP_SUMMARY
-            echo "| 🚨 Critical | \${CRITICAL_COUNT} | \(( [ "\)CRITICAL_COUNT" -gt 0 ] && echo "❌ Immediate Fix Required" || echo "✅ Clean" ) |" >> \$GITHUB_STEP_SUMMARY
-            echo "| 🔴 High     | \${HIGH_COUNT} | \(( [ "\)HIGH_COUNT" -gt 0 ] && echo "❌ Fix Required" || echo "✅ Clean" ) |" >> \$GITHUB_STEP_SUMMARY
+            echo "| 🚨 Critical    | \${CRITICAL_COUNT} | \({CRITICAL_ACT} \vert{}" >> \)GITHUB_STEP_SUMMARY
+            echo "| 🔴 High        | \${HIGH_COUNT} | \({HIGH_ACT} \vert{}" >> \)GITHUB_STEP_SUMMARY
             echo "" >> \$GITHUB_STEP_SUMMARY
             
             if [ "\(CRITICAL_COUNT" -eq 0 ] && [ "\)HIGH_COUNT" -eq 0 ]; then
