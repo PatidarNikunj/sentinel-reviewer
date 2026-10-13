@@ -125,11 +125,11 @@ jobs:
             echo "### 📦 Dependency Risk Summary" >> $GITHUB_STEP_SUMMARY
             echo "| Severity Level | Count | Action |" >> $GITHUB_STEP_SUMMARY
             echo "|----------------|-------|--------|" >> $GITHUB_STEP_SUMMARY
-            echo "| 🚨 Critical    | ${CRITICAL_COUNT} | ({CRITICAL_ACT} vert{}" >> )GITHUB_STEP_SUMMARY
-            echo "| 🔴 High        | ${HIGH_COUNT} | ({HIGH_ACT} vert{}" >> )GITHUB_STEP_SUMMARY
+            echo "| 🚨 Critical    | ${CRITICAL_COUNT} | ${CRITICAL_ACT} |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🔴 High        | ${HIGH_COUNT} | ${HIGH_ACT} |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             
-            if [ "(CRITICAL_COUNT" -eq 0 ] && [ ")HIGH_COUNT" -eq 0 ]; then
+            if [ "$CRITICAL_COUNT" -eq 0 ] && [ "$HIGH_COUNT" -eq 0 ]; then
               echo "**Status:** ✅ No high or critical dependencies vulnerabilities found!" >> $GITHUB_STEP_SUMMARY
             else
               echo "**Status:** ⚠️ Vulnerabilities detected. Review package locks or run `pnpm audit` locally." >> $GITHUB_STEP_SUMMARY
@@ -183,9 +183,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Stage     | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Semgrep   |  needs.semgrep-scan.result |" >> GITHUB_STEP_SUMMARY
-          echo "| Snyk      |  needs.snyk-scan.result |" >> GITHUB_STEP_SUMMARY
-          echo "| Web Build |  needs.next-build.result |" >> GITHUB_STEP_SUMMARY
+          echo "| Semgrep   | ${{ needs.semgrep-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Snyk      | ${{ needs.snyk-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Web Build | ${{ needs.next-build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: ❌ Handle Failure Verdict
@@ -225,4 +225,4 @@ jobs:
 
             ---
             _Automatically re-runs on every push to this PR (`synchronize` event)._
-            _Powered by [Sentinel Reviewer](https://github.com{{ github.repository }})_
+            _Powered by [Sentinel Reviewer](https://github.com/${{ github.repository }})_
