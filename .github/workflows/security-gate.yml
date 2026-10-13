@@ -65,7 +65,6 @@ jobs:
           else
             echo "**Status:** No SARIF output generated" >> $GITHUB_STEP_SUMMARY
           fi
-
   # ── Stage 2: Snyk Dependency Vulnerability Scan ──────────────────────────
   snyk-scan:
     name: 🛡️ Snyk Dependency Scan
@@ -113,7 +112,6 @@ jobs:
           else
             echo "**Status:** ⚠️ Vulnerabilities detected — review required" >> $GITHUB_STEP_SUMMARY
           fi
-
   # ── Stage 3: Next.js Production Web Build ───────────────────────────────
   next-build:
     name: 🚀 Next.js Production Build
@@ -146,9 +144,7 @@ jobs:
 
       - name: 🛠️ Build Next.js application
         run: pnpm build
-
-
-    # ── Stage 4: Security & Build Gate Verdict ────────────────────────────────
+  # ── Stage 4: Security & Build Gate Verdict ────────────────────────────────
   security-verdict:
     name: 🏁 Quality Gate Verdict
     runs-on: ubuntu-latest
@@ -160,26 +156,31 @@ jobs:
         run: |
           echo "## 🏁 Quality Gate Verdict" >> \$GITHUB_STEP_SUMMARY
           echo "" >> \$GITHUB_STEP_SUMMARY
-
-          SEMGREP_STATUS="\${{ needs.semgrep-scan.result }}"
-          SNYK_STATUS="\${{ needs.snyk-scan.result }}"
-          BUILD_STATUS="\${{ needs.next-build.result }}"
-
-          echo "| Stage    | Status |" >> \$GITHUB_STEP_SUMMARY
-          echo "|----------|--------|" >> \$GITHUB_STEP_SUMMARY
-          echo "| Semgrep  | \({SEMGREP_STATUS} \vert{}" >> \)GITHUB_STEP_SUMMARY
-          echo "| Snyk     | \({SNYK_STATUS} \vert{}" >> \)GITHUB_STEP_SUMMARY
-          echo "| Web Build| \({BUILD_STATUS} \vert{}" >> \)GITHUB_STEP_SUMMARY
+          echo "| Stage     | Status |" >> \$GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> \$GITHUB_STEP_SUMMARY
+          echo "| Semgrep   |  needs.semgrep-scan.result |" >> GITHUB_STEP_SUMMARY
+          echo "| Snyk      |  needs.snyk-scan.result |" >> GITHUB_STEP_SUMMARY
+          echo "| Web Build |  needs.next-build.result |" >> GITHUB_STEP_SUMMARY
           echo "" >> \$GITHUB_STEP_SUMMARY
 
-          if [[ "\$SEMGREP_STATUS" == "failure" || "\(SNYK_STATUS" == "failure" \vert{}\vert{} "\)BUILD_STATUS" == "failure" ]]; then
-            echo "### ❌ Quality Gate: **FAILED**" >> \$GITHUB_STEP_SUMMARY
-            echo "" >> \$GITHUB_STEP_SUMMARY
-            echo "Review errors and push new commits to this PR to automatically re-trigger." >> \$GITHUB_STEP_SUMMARY
-            exit 1
-          else
-            echo "### ✅ Quality Gate: **PASSED**" >> \$GITHUB_STEP_SUMMARY
-          fi
+      - name: ❌ Handle Failure Verdict
+        if: |
+          needs.semgrep-scan.result == 'failure' || 
+          needs.snyk-scan.result == 'failure' || 
+          needs.next-build.result == 'failure'
+        run: |
+          echo "### ❌ Quality Gate: **FAILED**" >> \$GITHUB_STEP_SUMMARY
+          echo "" >> \$GITHUB_STEP_SUMMARY
+          echo "Review errors and push new commits to this PR to automatically re-trigger." >> \$GITHUB_STEP_SUMMARY
+          exit 1
+
+      - name: ✅ Handle Success Verdict
+        if: |
+          needs.semgrep-scan.result == 'success' && 
+          needs.snyk-scan.result == 'success' && 
+          needs.next-build.result == 'success'
+        run: |
+          echo "### ✅ Quality Gate: **PASSED**" >> \$GITHUB_STEP_SUMMARY
 
       - name: 💬 Comment PR with results
         if: github.event_name == 'pull_request' && always()
