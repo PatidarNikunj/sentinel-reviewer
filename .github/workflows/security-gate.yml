@@ -103,7 +103,7 @@ jobs:
         uses: snyk/actions/node@master
         continue-on-error: true
         env:
-          SNYK_TOKEN: \${{ secrets.SNYK_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --all-projects --severity-threshold=high --json-file-output=snyk.json
 
@@ -114,25 +114,25 @@ jobs:
           
           if [ -f snyk.json ]; then
             # 1. Calculate values safely into clean shell variables
-            CRITICAL_COUNT=\$(cat snyk.json | jq '[if type=="array" then .[] else . end | .vulnerabilities[]? | select(.severity == "critical")] | length')
-            HIGH_COUNT=\$(cat snyk.json | jq '[if type=="array" then .[] else . end | .vulnerabilities[]? | select(.severity == "high")] | length')
+            CRITICAL_COUNT=$(cat snyk.json | jq '[if type=="array" then .[] else . end | .vulnerabilities[]? | select(.severity == "critical")] | length')
+            HIGH_COUNT=$(cat snyk.json | jq '[if type=="array" then .[] else . end | .vulnerabilities[]? | select(.severity == "high")] | length')
             
             # 2. Determine status strings safely before writing to markdown
-            if [ "\$CRITICAL_COUNT" -gt 0 ]; then CRITICAL_ACT="❌ Immediate Fix Required"; else CRITICAL_ACT="✅ Clean"; fi
-            if [ "\$HIGH_COUNT" -gt 0 ]; then HIGH_ACT="❌ Fix Required"; else HIGH_ACT="✅ Clean"; fi
+            if [ "$CRITICAL_COUNT" -gt 0 ]; then CRITICAL_ACT="❌ Immediate Fix Required"; else CRITICAL_ACT="✅ Clean"; fi
+            if [ "$HIGH_COUNT" -gt 0 ]; then HIGH_ACT="❌ Fix Required"; else HIGH_ACT="✅ Clean"; fi
 
             # 3. Print out the structured table cleanly
             echo "### 📦 Dependency Risk Summary" >> $GITHUB_STEP_SUMMARY
             echo "| Severity Level | Count | Action |" >> $GITHUB_STEP_SUMMARY
             echo "|----------------|-------|--------|" >> $GITHUB_STEP_SUMMARY
-            echo "| 🚨 Critical    | \${CRITICAL_COUNT} | \({CRITICAL_ACT} \vert{}" >> \)GITHUB_STEP_SUMMARY
-            echo "| 🔴 High        | \${HIGH_COUNT} | \({HIGH_ACT} \vert{}" >> \)GITHUB_STEP_SUMMARY
+            echo "| 🚨 Critical    | ${CRITICAL_COUNT} | ({CRITICAL_ACT} vert{}" >> )GITHUB_STEP_SUMMARY
+            echo "| 🔴 High        | ${HIGH_COUNT} | ({HIGH_ACT} vert{}" >> )GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             
-            if [ "\(CRITICAL_COUNT" -eq 0 ] && [ "\)HIGH_COUNT" -eq 0 ]; then
+            if [ "(CRITICAL_COUNT" -eq 0 ] && [ ")HIGH_COUNT" -eq 0 ]; then
               echo "**Status:** ✅ No high or critical dependencies vulnerabilities found!" >> $GITHUB_STEP_SUMMARY
             else
-              echo "**Status:** ⚠️ Vulnerabilities detected. Review package locks or run \`pnpm audit\` locally." >> $GITHUB_STEP_SUMMARY
+              echo "**Status:** ⚠️ Vulnerabilities detected. Review package locks or run `pnpm audit` locally." >> $GITHUB_STEP_SUMMARY
             fi
           else
             echo "❌ **Status:** No Snyk output payload discovered." >> $GITHUB_STEP_SUMMARY
@@ -217,11 +217,11 @@ jobs:
 
             | Gate Type | Status |
             |---------|--------|
-            | Semgrep SAST | \${{ needs.semgrep-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} |
-            | Snyk Dependencies | \${{ needs.snyk-scan.result == 'success' && '✅ Passed' || '⚠️ Review needed' }} |
-            | Next.js Web Build | \${{ needs.next-build.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            | Semgrep SAST | ${{ needs.semgrep-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+            | Snyk Dependencies | ${{ needs.snyk-scan.result == 'success' && '✅ Passed' || '⚠️ Review needed' }} |
+            | Next.js Web Build | ${{ needs.next-build.result == 'success' && '✅ Passed' || '❌ Failed' }} |
 
-            **Overall:** \${{ (needs.semgrep-scan.result == 'success' && needs.snyk-scan.result == 'success' && needs.next-build.result == 'success') && '✅ Gate PASSED' || '❌ Gate FAILED — push fixes to re-trigger' }}
+            **Overall:** ${{ (needs.semgrep-scan.result == 'success' && needs.snyk-scan.result == 'success' && needs.next-build.result == 'success') && '✅ Gate PASSED' || '❌ Gate FAILED — push fixes to re-trigger' }}
 
             ---
             _Automatically re-runs on every push to this PR (`synchronize` event)._
