@@ -110,31 +110,32 @@ jobs:
       - name: 📊 Generate Snyk summary
         if: always()
         run: |
-          echo "## 🛡️ Snyk Dependency Scan Results" >> \$GITHUB_STEP_SUMMARY
+          echo "## 🛡️ Snyk Dependency Scan Results" >> $GITHUB_STEP_SUMMARY
           
           if [ -f snyk.json ]; then
-            # Parse counts cleanly using native jq evaluation strings
+            # 1. Calculate values safely into clean shell variables
             CRITICAL_COUNT=\$(cat snyk.json | jq '[if type=="array" then .[] else . end | .vulnerabilities[]? | select(.severity == "critical")] | length')
             HIGH_COUNT=\$(cat snyk.json | jq '[if type=="array" then .[] else . end | .vulnerabilities[]? | select(.severity == "high")] | length')
             
-            # Map structural status actions out cleanly before echoing strings
+            # 2. Determine status strings safely before writing to markdown
             if [ "\$CRITICAL_COUNT" -gt 0 ]; then CRITICAL_ACT="❌ Immediate Fix Required"; else CRITICAL_ACT="✅ Clean"; fi
             if [ "\$HIGH_COUNT" -gt 0 ]; then HIGH_ACT="❌ Fix Required"; else HIGH_ACT="✅ Clean"; fi
 
-            echo "### 📦 Dependency Risk Summary" >> \$GITHUB_STEP_SUMMARY
-            echo "| Severity Level | Count | Action |" >> \$GITHUB_STEP_SUMMARY
-            echo "|----------------|-------|--------|" >> \$GITHUB_STEP_SUMMARY
+            # 3. Print out the structured table cleanly
+            echo "### 📦 Dependency Risk Summary" >> $GITHUB_STEP_SUMMARY
+            echo "| Severity Level | Count | Action |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------------|-------|--------|" >> $GITHUB_STEP_SUMMARY
             echo "| 🚨 Critical    | \${CRITICAL_COUNT} | \({CRITICAL_ACT} \vert{}" >> \)GITHUB_STEP_SUMMARY
             echo "| 🔴 High        | \${HIGH_COUNT} | \({HIGH_ACT} \vert{}" >> \)GITHUB_STEP_SUMMARY
-            echo "" >> \$GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
             
             if [ "\(CRITICAL_COUNT" -eq 0 ] && [ "\)HIGH_COUNT" -eq 0 ]; then
-              echo "**Status:** ✅ No high or critical dependencies vulnerabilities found!" >> \$GITHUB_STEP_SUMMARY
+              echo "**Status:** ✅ No high or critical dependencies vulnerabilities found!" >> $GITHUB_STEP_SUMMARY
             else
-              echo "**Status:** ⚠️ Vulnerabilities detected. Review package locks or run \`pnpm audit\` locally." >> \$GITHUB_STEP_SUMMARY
+              echo "**Status:** ⚠️ Vulnerabilities detected. Review package locks or run \`pnpm audit\` locally." >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "❌ **Status:** No Snyk output payload discovered." >> \$GITHUB_STEP_SUMMARY
+            echo "❌ **Status:** No Snyk output payload discovered." >> $GITHUB_STEP_SUMMARY
           fi
   # ── Stage 3: Next.js Production Web Build ───────────────────────────────
   next-build:
@@ -178,14 +179,14 @@ jobs:
     steps:
       - name: 🏁 Evaluate gate status
         run: |
-          echo "## 🏁 Quality Gate Verdict" >> \$GITHUB_STEP_SUMMARY
-          echo "" >> \$GITHUB_STEP_SUMMARY
-          echo "| Stage     | Status |" >> \$GITHUB_STEP_SUMMARY
-          echo "|-----------|--------|" >> \$GITHUB_STEP_SUMMARY
+          echo "## 🏁 Quality Gate Verdict" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage     | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Semgrep   |  needs.semgrep-scan.result |" >> GITHUB_STEP_SUMMARY
           echo "| Snyk      |  needs.snyk-scan.result |" >> GITHUB_STEP_SUMMARY
           echo "| Web Build |  needs.next-build.result |" >> GITHUB_STEP_SUMMARY
-          echo "" >> \$GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: ❌ Handle Failure Verdict
         if: |
@@ -193,9 +194,9 @@ jobs:
           needs.snyk-scan.result == 'failure' || 
           needs.next-build.result == 'failure'
         run: |
-          echo "### ❌ Quality Gate: **FAILED**" >> \$GITHUB_STEP_SUMMARY
-          echo "" >> \$GITHUB_STEP_SUMMARY
-          echo "Review errors and push new commits to this PR to automatically re-trigger." >> \$GITHUB_STEP_SUMMARY
+          echo "### ❌ Quality Gate: **FAILED**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Review errors and push new commits to this PR to automatically re-trigger." >> $GITHUB_STEP_SUMMARY
           exit 1
 
       - name: ✅ Handle Success Verdict
@@ -204,7 +205,7 @@ jobs:
           needs.snyk-scan.result == 'success' && 
           needs.next-build.result == 'success'
         run: |
-          echo "### ✅ Quality Gate: **PASSED**" >> \$GITHUB_STEP_SUMMARY
+          echo "### ✅ Quality Gate: **PASSED**" >> $GITHUB_STEP_SUMMARY
 
       - name: 💬 Comment PR with results
         if: github.event_name == 'pull_request' && always()
